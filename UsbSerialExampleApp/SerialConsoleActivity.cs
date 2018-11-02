@@ -59,6 +59,8 @@ namespace UsbSerialExampleApp
         ScrollView scrollView;
         Button sleepButton;
         Button wakeButton;
+        Button wakaButton;
+        EditText text;
 
         SerialInputOutputManager serialIoManager;
 
@@ -77,22 +79,41 @@ namespace UsbSerialExampleApp
 
             sleepButton = FindViewById<Button>(Resource.Id.sleepButton);
             wakeButton = FindViewById<Button>(Resource.Id.wakeupButton);
+            wakaButton = FindViewById<Button>(Resource.Id.wakaButton);
+            text = FindViewById<EditText>(Resource.Id.text);
 
             // The following arrays contain data that is used for a custom firmware for
             // the Elatec TWN4 RFID reader. This code is included here to show how to
             // send data back to a USB serial device
-            byte[] sleepdata = new byte[] { 0xf0, 0x04, 0x10, 0xf1 };
-            byte[] wakedata = new byte[] { 0xf0, 0x04, 0x11, 0xf1 };
+            byte[] sleepdata = new byte[] { 0x24, 0x33, 0x32, 0x24, 0x30, 0x31, 0x24, 0x30, 0x32, 0x24, 0x30, 0x30, 0x24, 0x66, 0x30 };
+            string wakedata = "Hello\r\n";
+            string wakadata = "$32$01$81 33322334 1805170955 00000 00000 0$f0";
 
             sleepButton.Click += delegate
             {
-                WriteData(sleepdata);
+                WriteBytes(sleepdata);
             };
 
             wakeButton.Click += delegate
             {
-                WriteData(wakedata);
+                WriteData(Encoding.ASCII.GetBytes(wakedata));
             };
+
+            text.KeyPress += (object sender, View.KeyEventArgs e) =>
+            {
+                e.Handled = false;
+                if (e.Event.Action == KeyEventActions.Down && e.KeyCode == Keycode.Enter)
+                {
+                    WriteData(Encoding.ASCII.GetBytes(text.Text));
+                    e.Handled = true;
+                }
+            };
+
+            wakaButton.Click += delegate
+            {
+                WriteData(Encoding.ASCII.GetBytes(wakadata));
+            };
+
         }
 
         protected override void OnPause()
@@ -145,7 +166,7 @@ namespace UsbSerialExampleApp
 
             serialIoManager = new SerialInputOutputManager(port)
             {
-                BaudRate = 115200,
+                BaudRate = 9600,
                 DataBits = 8,
                 StopBits = StopBits.One,
                 Parity = Parity.None,
@@ -173,6 +194,13 @@ namespace UsbSerialExampleApp
                 return;
             }
         }
+        void WriteBytes(byte[] data) {
+            if (serialIoManager.IsOpen)
+            {
+                port.Write(data, WRITE_WAIT_MILLIS);
+            }
+
+        }
 
         void WriteData(byte[] data)
         {
@@ -184,8 +212,9 @@ namespace UsbSerialExampleApp
 
         void UpdateReceivedData(byte[] data)
         {
-            var message = "Read " + data.Length + " bytes: \n"
-                + HexDump.DumpHexString(data) + "\n\n";
+            string result = Encoding.UTF8.GetString(data);
+
+            var message = "Read " + data.Length + " bytes: " + HexDump.DumpHexString(data) + "\n";
 
             dumpTextView.Append(message);
             scrollView.SmoothScrollTo(0, dumpTextView.Bottom);

@@ -109,6 +109,10 @@ namespace Hoho.Android.UsbSerial.Driver
          */
         public abstract void Close();
 
+
+        //public abstract int ReadString(string dest, int timeoutMillis);
+
+        //public abstract int WriteString(string dest, int timeoutMillis);
         /**
          * Reads as many bytes as possible into the destination buffer.
          *
